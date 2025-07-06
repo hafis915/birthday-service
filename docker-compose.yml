@@ -1,0 +1,39 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: birthday-reminder-api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongodb
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - MONGODB_URI=mongodb://birthday-app-mongodb:27017/be-test
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  mongodb:
+    image: mongo:latest
+    container_name: birthday-app-mongodb
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb-data:/data/db
+    restart: unless-stopped
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mongodb-data:
+    driver: local
