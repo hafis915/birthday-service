@@ -39,7 +39,21 @@ const userSchema = new Schema({
       },
       message: (props: { value: string; }) => `${props.value} is not a valid timezone identifier`
     }
-   },
+  },
+  birthdayReminder: {
+    lastProcessedYear: {
+      type: Number,
+      default: null
+    },
+    nextReminder: {
+      type: Date,
+      default: null
+    },
+    active: {
+      type: Boolean,
+      default: true
+    }
+  },
 }, {
   timestamps: true, // Automatically add createdAt and updatedAt
   versionKey: false // Don't include __v field

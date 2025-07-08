@@ -6,6 +6,11 @@ export interface UserDocument {
   timezone: string; // Required per schema
   active?: boolean;
   role?: string;
+  birthdayReminder?: {
+    lastProcessedYear: number | null;
+    nextReminder: Date | null;
+    active: boolean;
+  };
   createdAt: Date;
   updatedAt: Date;
 }

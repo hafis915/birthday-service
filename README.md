@@ -2,6 +2,16 @@
 
 A modular REST API built with MongoDB, Express, TypeScript, and Mongoose, with Jest for testing and node-cron for scheduled birthday reminder tasks. This API helps manage users and sends birthday reminders.
 
+## Birthday Reminder System
+
+The Birthday Reminder System is designed to be scalable and reliable, with the following features:
+
+- **Database-Backed Reminders**: All reminder state is stored in the database, not in memory
+- **Batch Processing**: Users are processed in configurable batches to avoid memory issues
+- **Leap Year Handling**: Special handling for February 29th birthdays in non-leap years
+- **Downtime Recovery**: System detects and processes missed reminders after downtime
+- **Fault Tolerance**: Error handling for individual users prevents system-wide failures
+
 ## Tech Stack
 
 - **MongoDB**: NoSQL database
@@ -49,6 +59,58 @@ A modular REST API built with MongoDB, Express, TypeScript, and Mongoose, with J
 ### Installation
 
 1. Clone the repository
+
+## Birthday Reminder System Details
+
+### System Design
+
+The birthday reminder system has been redesigned for improved scalability and reliability:
+
+#### Database Schema
+
+User records have been extended with a `birthdayReminder` object that contains:
+
+```typescript
+birthdayReminder: {
+  lastProcessedYear: number | null, // Tracks which year's birthday has been processed
+  nextReminder: Date | null,        // When the next reminder should trigger
+  active: boolean                   // Whether reminders are enabled
+}
+```
+
+#### Cron Jobs
+
+- **Hourly Job**: Checks for birthdays due in the next hour
+- **Startup Job**: Detects any birthdays missed during application downtime
+- **Initialization Job**: Sets up reminders for new or updated users
+
+#### Leap Year Handling
+
+February 29th birthdays are handled specially:
+- In leap years: Reminder is sent on February 29th
+- In non-leap years: Reminder is sent on March 1st
+
+### Migration Guide
+
+If upgrading from a previous version, run the migration script:
+
+```bash
+npm run migrate:birthday
+```
+
+This script:
+1. Identifies users without the `birthdayReminder` field
+2. Updates them with default values
+3. Processes in batches to prevent memory issues
+
+## Scaling Considerations
+
+The system is designed to scale by:
+
+- Processing users in configurable batches
+- Storing all state in the database (no in-memory jobs)
+- Handling failures for individual users without affecting others
+- Using database queries to efficiently find only users with due reminders
 2. Install dependencies:
    ```bash
    npm install
@@ -100,7 +162,8 @@ The test suite includes comprehensive coverage for:
 ## Cron Jobs
 
 - Daily cleanup job: Runs every day at midnight
-- Hourly job: Runs every hour
+- Hourly job: Processes birthday reminders for users with birthdays in the next hour
+- Startup job: Checks for any birthday reminders missed during application downtime
 
 ## Docker Setup
 
@@ -135,6 +198,23 @@ This command will:
 2. After running the command:
    - The API will be available at http://localhost:3000/api
    - MongoDB will be available at mongodb://localhost:27018 (mapped to port 27018 to avoid conflicts)
+
+### Running the Migration Script
+
+If upgrading from a previous version, you'll need to run the birthday reminder migration script to update existing users:
+
+```bash
+# In local development
+npm run migrate:birthday
+
+# In Docker
+docker exec -it birthday-reminder-api npm run migrate:birthday
+```
+
+This will:
+- Add the `birthdayReminder` field to all existing users
+- Process the updates in batches to avoid memory issues
+- Log the results of the migration
 
 ### Checking Status and Logs
 

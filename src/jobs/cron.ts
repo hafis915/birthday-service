@@ -6,7 +6,7 @@ import birthdayService from '../services/birthday.service';
 const logger = new Logger('Cron');
 
 /**
- * Example cron job that runs every day at midnight
+ * Cron job that runs every day at midnight
  * Schedule: '0 0 * * *' (minute hour day-of-month month day-of-week)
  */
 export const setupDailyCleanupJob = (): void => {
@@ -31,7 +31,7 @@ export const setupDailyCleanupJob = (): void => {
 };
 
 /**
- * Example cron job that runs every hour
+ * Cron job that runs every hour to process birthday reminders
  * Schedule: '0 * * * *' (minute hour day-of-month month day-of-week)
  */
 export const setupHourlyJob = (): void => {
@@ -39,8 +39,9 @@ export const setupHourlyJob = (): void => {
     cron.schedule('0 * * * *', async () => {
       try {
         logger.info('Running hourly job');
-        // Implement job logic here
-        // For example: Check system health, send metrics, etc.
+        
+        // Process birthday reminders that are due in the next hour
+        await birthdayService.processBirthdayReminders();
         
         logger.info('Hourly job completed');
       } catch (error) {
@@ -55,14 +56,36 @@ export const setupHourlyJob = (): void => {
 };
 
 /**
+ * Cron job that runs after application startup to catch any reminders missed during downtime
+ */
+export const setupMissedRemindersJob = (): void => {
+  // Process missed reminders once on startup with a slight delay
+  // to allow the application to fully initialize
+  setTimeout(async () => {
+    try {
+      logger.info('Running missed reminders check');
+      
+      // Look back 24 hours for any missed reminders
+      await birthdayService.processMissedReminders(24);
+      
+      logger.info('Missed reminders check completed');
+    } catch (error) {
+      logger.error('Error checking missed reminders:', error);
+    }
+  }, 5000); // Wait 5 seconds after initialization
+};
+
+/**
  * Initialize birthday reminders for all existing users
  */
 export const initializeBirthdayReminders = async (): Promise<void> => {
   try {
     logger.info('Initializing birthday reminders for existing users');
-    const users = await User.find({ active: true });
-    birthdayService.initializeAllReminders(users);
-    logger.info(`Birthday reminders initialized for ${users.length} users`);
+    
+    // Instead of loading all users at once, use the batch processing in the service
+    const processedCount = await birthdayService.initializeAllReminders(100);
+    
+    logger.info(`Birthday reminders initialized for ${processedCount} users`);
   } catch (error) {
     logger.error('Failed to initialize birthday reminders:', error);
   }
@@ -76,7 +99,12 @@ export const initializeCronJobs = async (): Promise<void> => {
   
   // Set up regular maintenance jobs
   setupDailyCleanupJob();
-  // setupHourlyJob();
+  
+  // Set up hourly job to process birthday reminders
+  setupHourlyJob();
+  
+  // Setup missed reminders check (runs once on startup)
+  setupMissedRemindersJob();
   
   // Set up birthday reminders for existing users
   await initializeBirthdayReminders();
@@ -88,5 +116,6 @@ export default {
   initializeCronJobs,
   setupDailyCleanupJob,
   setupHourlyJob,
+  setupMissedRemindersJob,
   initializeBirthdayReminders
 };
